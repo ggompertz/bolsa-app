@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     default_interval: Literal["1m","5m","15m","30m","1h","1d","1wk","1mo"] = "1d"
     default_period: str = "1y"
 
+    # Alertas
+    database_url: str = "sqlite:///./alerts.db"
+    telegram_bot_token: str = ""
+    alert_check_minutes: int = 15  # frecuencia de evaluación del scheduler
+
     class Config:
         env_file = ".env"
 

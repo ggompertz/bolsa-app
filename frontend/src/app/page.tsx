@@ -4,6 +4,8 @@ import { useState } from "react";
 import StockSearch from "@/components/StockSearch/StockSearch";
 import ChartPanel from "@/components/Chart/ChartPanel";
 import AnalysisPanel from "@/components/Dashboard/AnalysisPanel";
+import AlertPanel from "@/components/Alerts/AlertPanel";
+import AlertBanner from "@/components/Alerts/AlertBanner";
 
 export default function Home() {
   const [symbol, setSymbol] = useState("AAPL");
@@ -97,11 +99,17 @@ export default function Home() {
           />
         </div>
 
-        {/* Panel de análisis */}
-        <div className="border-l border-gray-800 p-4">
+        {/* Panel lateral: análisis + alertas */}
+        <div className="border-l border-gray-800 p-4 space-y-6">
           <AnalysisPanel symbol={symbol} market={market} />
+          <div className="border-t border-gray-800 pt-4">
+            <AlertPanel currentSymbol={symbol} currentMarket={market} />
+          </div>
         </div>
       </div>
+
+      {/* Banner flotante de notificaciones */}
+      <AlertBanner />
     </main>
   );
 }

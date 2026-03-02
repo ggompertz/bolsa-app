@@ -13,3 +13,6 @@ pydantic-settings>=2.7.0
 # Cache
 diskcache==5.6.3
 scipy>=1.15.0
+# Alertas
+sqlalchemy>=2.0.0
+apscheduler>=3.10.0

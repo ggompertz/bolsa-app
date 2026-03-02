@@ -2,12 +2,20 @@
 Bolsa App - API Principal (FastAPI)
 Endpoints para obtener datos, indicadores y gráficos bursátiles.
 """
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from typing import Optional
 import pandas as pd
 import numpy as np
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+logger = logging.getLogger(__name__)
 
 
 def _to_python(obj):
@@ -32,12 +40,50 @@ from analysis.candlesticks import get_all_patterns
 from analysis.volume import classify_volume_signals, detect_absorption
 from analysis.patterns import find_support_resistance, detect_triangle, detect_breakout
 from charts.candlestick import build_candlestick_chart
+from db.database import init_db, SessionLocal
+from services.alert_evaluator import evaluate_all_alerts
+from api.alerts import router as alerts_router
+
+
+async def _run_alert_check():
+    """Tarea periódica: evalúa todas las alertas activas."""
+    db = SessionLocal()
+    try:
+        fired = await evaluate_all_alerts(db)
+        if fired:
+            logger.info("Scheduler: %d alerta(s) disparada(s)", fired)
+    except Exception as exc:
+        logger.error("Error en ciclo de alertas: %s", exc)
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    init_db()
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        _run_alert_check,
+        "interval",
+        minutes=settings.alert_check_minutes,
+        id="alert_check",
+    )
+    scheduler.start()
+    logger.info("Scheduler iniciado — evaluación cada %d min", settings.alert_check_minutes)
+    yield
+    # Shutdown
+    scheduler.shutdown(wait=False)
+
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description="Sistema de análisis técnico para mercados bursátiles Chile y USA",
+    lifespan=lifespan,
 )
+
+app.include_router(alerts_router)
 
 _origins = [settings.frontend_url]
 if settings.allowed_origins:
