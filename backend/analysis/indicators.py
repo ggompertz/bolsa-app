@@ -109,6 +109,18 @@ def add_volume_indicators(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_guppy(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    GMMA — Guppy Multiple Moving Average.
+    Grupo corto (traders):    EMA 3, 5, 8, 10, 12, 15
+    Grupo largo (inversores): EMA 30, 35, 40, 45, 50, 60
+    """
+    df = df.copy()
+    for p in [3, 5, 8, 10, 12, 15, 30, 35, 40, 45, 50, 60]:
+        df[f"GMMA_{p}"] = ta.ema(df["Close"], length=p)
+    return df
+
+
 def add_all_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """Agrega todos los indicadores de una vez."""
     df = add_moving_averages(df)

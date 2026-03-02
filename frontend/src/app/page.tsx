@@ -61,7 +61,7 @@ export default function Home() {
         </select>
 
         <div className="flex flex-wrap gap-2 text-sm">
-          {["SMA_20","SMA_50","SMA_200","EMA_9","BB_Upper","Volume","RSI","MACD"].map((ind) => {
+          {["SMA_20","SMA_50","SMA_200","EMA_9","BB_Upper","GMMA","Volume","RSI","MACD"].map((ind) => {
             const active = indicators.split(",").includes(ind);
             return (
               <button

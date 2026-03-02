@@ -35,7 +35,7 @@ def _to_python(obj):
 from config import settings
 from data.fetcher import get_ohlcv, get_info, search_tickers
 from data.markets import MARKETS, VALID_INTERVALS, format_ticker
-from analysis.indicators import add_all_indicators, add_moving_averages, add_rsi, add_macd, add_bollinger_bands, add_volume_indicators
+from analysis.indicators import add_all_indicators, add_moving_averages, add_rsi, add_macd, add_bollinger_bands, add_volume_indicators, add_guppy
 from analysis.candlesticks import get_all_patterns
 from analysis.volume import classify_volume_signals, detect_absorption
 from analysis.patterns import find_support_resistance, detect_triangle, detect_breakout
@@ -191,6 +191,8 @@ def stock_chart(
         df = add_macd(df)
     if "BB_Upper" in ind_list:
         df = add_bollinger_bands(df)
+    if "GMMA" in ind_list:
+        df = add_guppy(df)
 
     # Patrones de velas
     patterns = get_all_patterns(df) if show_patterns else None

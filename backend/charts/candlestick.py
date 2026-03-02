@@ -77,6 +77,33 @@ def build_candlestick_chart(
                 row=1, col=1,
             )
 
+    # --- GMMA (Guppy Multiple Moving Average) ---
+    if "GMMA" in indicators:
+        gmma_short = [3, 5, 8, 10, 12, 15]
+        gmma_long  = [30, 35, 40, 45, 50, 60]
+        for i, p in enumerate(gmma_short):
+            col = f"GMMA_{p}"
+            if col in df.columns:
+                fig.add_trace(
+                    go.Scatter(x=df.index, y=df[col], name=f"G{p}" if i == 0 else f"G{p}",
+                               line=dict(color="#29b6f6", width=0.8),
+                               legendgroup="gmma_short",
+                               legendgrouptitle_text="GMMA Corto" if i == 0 else None,
+                               showlegend=(i == 0)),
+                    row=1, col=1,
+                )
+        for i, p in enumerate(gmma_long):
+            col = f"GMMA_{p}"
+            if col in df.columns:
+                fig.add_trace(
+                    go.Scatter(x=df.index, y=df[col], name=f"G{p}",
+                               line=dict(color="#ef5350", width=0.8),
+                               legendgroup="gmma_long",
+                               legendgrouptitle_text="GMMA Largo" if i == 0 else None,
+                               showlegend=(i == 0)),
+                    row=1, col=1,
+                )
+
     # --- Bandas de Bollinger ---
     if "BB_Upper" in df.columns and "BB_Upper" in indicators:
         fig.add_trace(go.Scatter(x=df.index, y=df["BB_Upper"], name="BB Sup",
