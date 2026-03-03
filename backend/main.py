@@ -40,6 +40,24 @@ from analysis.candlesticks import get_all_patterns
 from analysis.volume import classify_volume_signals, detect_absorption
 from analysis.patterns import find_support_resistance, detect_triangle, detect_breakout
 from charts.candlestick import build_candlestick_chart
+# Períodos máximos por intervalo (límite de yfinance)
+_MAX_PERIOD = {"1m": "7d", "5m": "60d", "15m": "60d", "30m": "60d", "1h": "730d"}
+
+def _cap_period(interval: str, period: str) -> str:
+    """Si el período pedido supera el máximo del intervalo, retorna el máximo."""
+    max_p = _MAX_PERIOD.get(interval)
+    if not max_p:
+        return period  # 1d, 1wk, 1mo no tienen límite práctico
+
+    # Orden de períodos de menor a mayor
+    order = ["1d","2d","5d","7d","10d","1mo","2mo","3mo","6mo","60d","90d",
+             "1y","2y","730d","5y","10y","max"]
+    def rank(p: str) -> int:
+        try: return order.index(p)
+        except ValueError: return 99
+
+    return max_p if rank(period) > rank(max_p) else period
+
 from db.database import init_db, SessionLocal
 from services.alert_evaluator import evaluate_all_alerts
 from api.alerts import router as alerts_router
@@ -142,8 +160,9 @@ def stock_ohlcv(
         raise HTTPException(400, f"Intervalo inválido. Válidos: {list(VALID_INTERVALS)}")
 
     ticker = format_ticker(symbol, market)
+    safe_period = _cap_period(interval, period)
     try:
-        df = get_ohlcv(ticker, interval=interval, period=period, force_refresh=refresh)
+        df = get_ohlcv(ticker, interval=interval, period=safe_period, force_refresh=refresh)
     except ValueError as e:
         raise HTTPException(404, str(e))
 
@@ -173,9 +192,10 @@ def stock_chart(
     Retorna JSON de gráfico Plotly con velas, indicadores y patrones.
     """
     ticker = format_ticker(symbol, market)
+    safe_period = _cap_period(interval, period)
 
     try:
-        df = get_ohlcv(ticker, interval=interval, period=period)
+        df = get_ohlcv(ticker, interval=interval, period=safe_period)
     except ValueError as e:
         raise HTTPException(404, str(e))
 

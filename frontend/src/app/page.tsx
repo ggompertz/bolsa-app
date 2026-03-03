@@ -37,10 +37,19 @@ export default function Home() {
         <select
           className="bg-gray-800 text-sm rounded px-2 py-1 border border-gray-700"
           value={interval}
-          onChange={(e) => setInterval(e.target.value)}
+          onChange={(e) => {
+            const iv = e.target.value;
+            setInterval(iv);
+            // Ajustar período al máximo permitido por el intervalo
+            if (iv === "1m")                          setPeriod("5d");
+            else if (["5m","15m","30m"].includes(iv)) setPeriod("1mo");
+            else if (iv === "1h")                     setPeriod("3mo");
+          }}
         >
+          <option value="1m">1 min</option>
           <option value="5m">5 min</option>
           <option value="15m">15 min</option>
+          <option value="30m">30 min</option>
           <option value="1h">1 hora</option>
           <option value="1d">Diario</option>
           <option value="1wk">Semanal</option>
@@ -52,13 +61,16 @@ export default function Home() {
           value={period}
           onChange={(e) => setPeriod(e.target.value)}
         >
-          <option value="1mo">1 mes</option>
-          <option value="3mo">3 meses</option>
-          <option value="6mo">6 meses</option>
-          <option value="1y">1 año</option>
-          <option value="2y">2 años</option>
-          <option value="5y">5 años</option>
-          <option value="max">Máximo</option>
+          {["1m"].includes(interval) && <option value="5d">5 días</option>}
+          {["1m","5m","15m","30m"].includes(interval) && <option value="1mo">1 mes</option>}
+          {!["1m"].includes(interval) && <option value="3mo">3 meses</option>}
+          {!["1m","5m","15m","30m"].includes(interval) && <>
+            <option value="6mo">6 meses</option>
+            <option value="1y">1 año</option>
+            <option value="2y">2 años</option>
+            <option value="5y">5 años</option>
+            <option value="max">Máximo</option>
+          </>}
         </select>
 
         <div className="flex flex-wrap gap-2 text-sm">
