@@ -163,6 +163,7 @@ export default function AlertPanel({ currentSymbol, currentMarket }: Props) {
               >
                 <option value="US">USA</option>
                 <option value="CL">Chile</option>
+                <option value="CRYPTO">Cripto</option>
               </select>
             </div>
           </div>

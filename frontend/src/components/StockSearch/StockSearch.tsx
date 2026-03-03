@@ -8,13 +8,14 @@ interface Props {
 }
 
 const POPULAR = {
-  US: ["AAPL", "MSFT", "NVDA", "TSLA", "GOOGL", "META", "AMZN"],
-  CL: ["COPEC.SN", "SQM-B.SN", "BSANTANDER.SN", "CHILE.SN", "LTM.SN", "ENELAM.SN"],
+  US:     ["AAPL", "MSFT", "NVDA", "TSLA", "GOOGL", "META", "AMZN"],
+  CL:     ["COPEC.SN", "SQM-B.SN", "BSANTANDER.SN", "CHILE.SN", "LTM.SN", "ENELAM.SN"],
+  CRYPTO: ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "XRP-USD", "ADA-USD", "DOGE-USD"],
 };
 
 export default function StockSearch({ onSelect }: Props) {
   const [query, setQuery] = useState("");
-  const [market, setMarket] = useState<"US" | "CL">("US");
+  const [market, setMarket] = useState<"US" | "CL" | "CRYPTO">("US");
   const [results, setResults] = useState<Array<{ symbol: string; name: string }>>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -51,10 +52,11 @@ export default function StockSearch({ onSelect }: Props) {
       <select
         className="bg-gray-800 text-sm rounded px-2 py-1 border border-gray-700"
         value={market}
-        onChange={(e) => setMarket(e.target.value as "US" | "CL")}
+        onChange={(e) => setMarket(e.target.value as "US" | "CL" | "CRYPTO")}
       >
         <option value="US">NYSE/NASDAQ</option>
         <option value="CL">Bolsa Santiago</option>
+        <option value="CRYPTO">Cripto</option>
       </select>
 
       <div className="relative">

@@ -25,6 +25,16 @@ MARKETS = {
             "TSLA", "META", "NFLX", "AMD", "INTC",
         ],
     },
+    "CRYPTO": {
+        "name": "Criptomonedas",
+        "suffix": "-USD",
+        "currency": "USD",
+        "timezone": "UTC",
+        "popular": [
+            "BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "XRP-USD",
+            "ADA-USD", "AVAX-USD", "DOGE-USD", "DOT-USD", "MATIC-USD",
+        ],
+    },
 }
 
 # Intervalos válidos y su periodo máximo en yfinance
