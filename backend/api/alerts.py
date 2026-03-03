@@ -24,6 +24,7 @@ class AlertCreate(BaseModel):
     condition_type: str
     condition_params: dict = {}
     telegram_chat_id: Optional[str] = None
+    cooldown_hours: int = 24
 
 
 class AlertOut(BaseModel):
@@ -35,6 +36,8 @@ class AlertOut(BaseModel):
     telegram_chat_id: Optional[str]
     active: bool
     created_at: datetime
+    cooldown_hours: int
+    last_triggered_at: Optional[datetime]
 
     model_config = {"from_attributes": True}
 
@@ -66,6 +69,7 @@ def create_alert(body: AlertCreate, db: Session = Depends(get_db)):
         condition_type=body.condition_type,
         condition_params=json.dumps(body.condition_params),
         telegram_chat_id=body.telegram_chat_id,
+        cooldown_hours=body.cooldown_hours,
         active=True,
     )
     db.add(alert)
@@ -140,6 +144,8 @@ def _alert_to_out(alert: Alert) -> AlertOut:
         telegram_chat_id=alert.telegram_chat_id,
         active=alert.active,
         created_at=alert.created_at,
+        cooldown_hours=alert.cooldown_hours or 24,
+        last_triggered_at=alert.last_triggered_at,
     )
 
 

@@ -109,6 +109,26 @@ def add_volume_indicators(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_adx(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
+    """
+    ADX (Average Directional Index) — fuerza de la tendencia.
+    - ADX > 25: tendencia fuerte (operable)
+    - ADX < 20: mercado lateral (evitar tendencia)
+    - DMP > DMN: tendencia alcista
+    - DMN > DMP: tendencia bajista
+    """
+    df = df.copy()
+    adx = ta.adx(df["High"], df["Low"], df["Close"], length=period)
+    if adx is not None:
+        col_adx = next((c for c in adx.columns if c.startswith("ADX_")), None)
+        col_dmp = next((c for c in adx.columns if c.startswith("DMP_")), None)
+        col_dmn = next((c for c in adx.columns if c.startswith("DMN_")), None)
+        if col_adx: df["ADX"]  = adx[col_adx]
+        if col_dmp: df["DMP"]  = adx[col_dmp]
+        if col_dmn: df["DMN"]  = adx[col_dmn]
+    return df
+
+
 def add_guppy(df: pd.DataFrame) -> pd.DataFrame:
     """
     GMMA — Guppy Multiple Moving Average.

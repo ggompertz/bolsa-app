@@ -6,6 +6,7 @@ import ChartPanel from "@/components/Chart/ChartPanel";
 import AnalysisPanel from "@/components/Dashboard/AnalysisPanel";
 import AlertPanel from "@/components/Alerts/AlertPanel";
 import AlertBanner from "@/components/Alerts/AlertBanner";
+import RiskCalculator from "@/components/RiskCalculator/RiskCalculator";
 
 export default function Home() {
   const [symbol, setSymbol] = useState("AAPL");
@@ -61,7 +62,7 @@ export default function Home() {
         </select>
 
         <div className="flex flex-wrap gap-2 text-sm">
-          {["SMA_20","SMA_50","SMA_200","EMA_9","BB_Upper","GMMA","Volume","RSI","MACD"].map((ind) => {
+          {["SMA_20","SMA_50","SMA_200","EMA_9","BB_Upper","GMMA","ADX","Volume","RSI","MACD"].map((ind) => {
             const active = indicators.split(",").includes(ind);
             return (
               <button
@@ -99,9 +100,12 @@ export default function Home() {
           />
         </div>
 
-        {/* Panel lateral: análisis + alertas */}
+        {/* Panel lateral: análisis + calculadora + alertas */}
         <div className="border-l border-gray-800 p-4 space-y-6">
           <AnalysisPanel symbol={symbol} market={market} />
+          <div className="border-t border-gray-800 pt-4">
+            <RiskCalculator />
+          </div>
           <div className="border-t border-gray-800 pt-4">
             <AlertPanel currentSymbol={symbol} currentMarket={market} />
           </div>

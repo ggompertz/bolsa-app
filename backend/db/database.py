@@ -1,7 +1,7 @@
 """
 Configuración de base de datos SQLite + SQLAlchemy.
 """
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from config import settings
 
@@ -28,6 +28,19 @@ def get_db():
 
 
 def init_db():
-    """Crea todas las tablas si no existen."""
+    """Crea todas las tablas si no existen y migra columnas nuevas."""
     from db.models import Alert, TriggeredAlert  # noqa: F401 — importar para registrar modelos
     Base.metadata.create_all(bind=engine)
+    # Migración segura: agregar columnas nuevas si no existen (SQLite no soporta IF NOT EXISTS en ADD COLUMN)
+    with engine.connect() as conn:
+        for col, definition in [
+            ("cooldown_hours",    "INTEGER NOT NULL DEFAULT 24"),
+            ("last_triggered_at", "DATETIME"),
+        ]:
+            try:
+                conn.execute(text(f"ALTER TABLE alerts ADD COLUMN {col} {definition}"))
+                conn.commit()
+            except Exception:
+                pass  # columna ya existe
+
+

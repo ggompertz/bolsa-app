@@ -35,13 +35,15 @@ def build_candlestick_chart(
     # Determinar número de filas del subplot
     has_rsi  = "RSI"  in indicators
     has_macd = "MACD" in indicators
-    n_rows   = 1 + int(show_volume) + int(has_rsi) + int(has_macd)
+    has_adx  = "ADX"  in indicators
+    n_rows   = 1 + int(show_volume) + int(has_rsi) + int(has_macd) + int(has_adx)
     row_heights = [0.5] + [0.15] * (n_rows - 1)
 
     subplot_titles = [symbol]
     if show_volume: subplot_titles.append("Volumen")
     if has_rsi:     subplot_titles.append("RSI (14)")
     if has_macd:    subplot_titles.append("MACD")
+    if has_adx:     subplot_titles.append("ADX (14)")
 
     fig = make_subplots(
         rows=n_rows, cols=1,
@@ -155,6 +157,30 @@ def build_candlestick_chart(
                       line_width=1, row=current_row, col=1)
         fig.add_hline(y=30, line_dash="dash", line_color="#26a69a",
                       line_width=1, row=current_row, col=1)
+        current_row += 1
+
+    # --- ADX ---
+    if has_adx and "ADX" in df.columns:
+        fig.add_trace(
+            go.Scatter(x=df.index, y=df["ADX"], name="ADX",
+                       line=dict(color="#ffd54f", width=1.5)),
+            row=current_row, col=1,
+        )
+        if "DMP" in df.columns:
+            fig.add_trace(
+                go.Scatter(x=df.index, y=df["DMP"], name="+DI",
+                           line=dict(color="#26a69a", width=1, dash="dot")),
+                row=current_row, col=1,
+            )
+        if "DMN" in df.columns:
+            fig.add_trace(
+                go.Scatter(x=df.index, y=df["DMN"], name="-DI",
+                           line=dict(color="#ef5350", width=1, dash="dot")),
+                row=current_row, col=1,
+            )
+        # Línea de referencia: ADX=25 (tendencia fuerte)
+        fig.add_hline(y=25, line_dash="dash", line_color="#ffd54f",
+                      line_width=1, opacity=0.5, row=current_row, col=1)
         current_row += 1
 
     # --- MACD ---

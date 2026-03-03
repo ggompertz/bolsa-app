@@ -15,13 +15,17 @@ class Alert(Base):
     symbol: Mapped[str] = mapped_column(String(20), nullable=False)
     market: Mapped[str] = mapped_column(String(5), nullable=False, default="US")
     condition_type: Mapped[str] = mapped_column(String(30), nullable=False)
-    # Parámetros extra en JSON (ej: {"pattern": "Hammer", "threshold": 70})
     condition_params: Mapped[str] = mapped_column(Text, default="{}")
     telegram_chat_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
+    )
+    # Cooldown: horas mínimas entre disparos de la misma alerta (0 = sin cooldown)
+    cooldown_hours: Mapped[int] = mapped_column(Integer, default=24)
+    last_triggered_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
     )
 
     triggered: Mapped[list["TriggeredAlert"]] = relationship(

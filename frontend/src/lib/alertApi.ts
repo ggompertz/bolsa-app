@@ -7,7 +7,8 @@ export type ConditionType =
   | "rsi_oversold"
   | "candle_pattern"
   | "volume_anomaly"
-  | "breakout";
+  | "breakout"
+  | "confluence";
 
 export interface AlertCreate {
   symbol: string;
@@ -15,6 +16,7 @@ export interface AlertCreate {
   condition_type: ConditionType;
   condition_params: Record<string, unknown>;
   telegram_chat_id?: string;
+  cooldown_hours?: number;
 }
 
 export interface Alert {
@@ -26,6 +28,8 @@ export interface Alert {
   telegram_chat_id: string | null;
   active: boolean;
   created_at: string;
+  cooldown_hours: number;
+  last_triggered_at: string | null;
 }
 
 export interface TriggeredAlert {
@@ -85,10 +89,11 @@ export async function testAlert(id: number): Promise<{ triggered: boolean; messa
 
 export const CONDITION_LABELS: Record<ConditionType, string> = {
   rsi_overbought: "RSI sobrecompra",
-  rsi_oversold: "RSI sobreventa",
+  rsi_oversold:   "RSI sobreventa",
   candle_pattern: "Patrón de velas",
   volume_anomaly: "Volumen anómalo",
-  breakout: "Ruptura S/R",
+  breakout:       "Ruptura S/R",
+  confluence:     "Confluencia (AND)",
 };
 
 export const CANDLE_PATTERNS = [
