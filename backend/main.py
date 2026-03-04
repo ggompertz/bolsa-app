@@ -129,8 +129,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(auth_router)
-app.include_router(alerts_router)
+try:
+    app.include_router(auth_router)
+    logger.info("AUTH ROUTER REGISTRADO OK — rutas: %s", [r.path for r in auth_router.routes])
+except Exception as _e:
+    logger.error("ERROR al registrar auth_router: %s", _e)
+
+try:
+    app.include_router(alerts_router)
+    logger.info("ALERTS ROUTER REGISTRADO OK")
+except Exception as _e:
+    logger.error("ERROR al registrar alerts_router: %s", _e)
 
 
 @app.middleware("http")
