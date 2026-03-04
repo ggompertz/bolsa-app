@@ -6,12 +6,14 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from typing import Optional
 import pandas as pd
 import numpy as np
+from jose import JWTError
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -59,8 +61,14 @@ def _cap_period(interval: str, period: str) -> str:
     return max_p if rank(period) > rank(max_p) else period
 
 from db.database import init_db, SessionLocal
+from db.models import User
 from services.alert_evaluator import evaluate_all_alerts
+from services.auth_service import hash_password, decode_token
 from api.alerts import router as alerts_router
+from api.auth import router as auth_router
+
+# Rutas públicas que no requieren autenticación
+_PUBLIC_PATHS = {"/api/auth/login", "/docs", "/openapi.json", "/redoc"}
 
 
 async def _run_alert_check():
@@ -76,10 +84,30 @@ async def _run_alert_check():
         db.close()
 
 
+def _seed_admin():
+    """Crea el usuario admin desde variables de entorno si no existe ningún usuario."""
+    if not settings.admin_password:
+        return
+    db = SessionLocal()
+    try:
+        if db.query(User).count() == 0:
+            admin = User(
+                username=settings.admin_username,
+                hashed_password=hash_password(settings.admin_password),
+                is_admin=True,
+            )
+            db.add(admin)
+            db.commit()
+            logger.info("Usuario admin '%s' creado", settings.admin_username)
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     init_db()
+    _seed_admin()
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
         _run_alert_check,
@@ -101,7 +129,27 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.include_router(auth_router)
 app.include_router(alerts_router)
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """Protege todas las rutas /api/* excepto las públicas."""
+    path = request.url.path
+    if not path.startswith("/api/") or path in _PUBLIC_PATHS:
+        return await call_next(request)
+    token = None
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    if not token:
+        return JSONResponse({"detail": "No autenticado"}, status_code=401)
+    try:
+        decode_token(token)
+    except JWTError:
+        return JSONResponse({"detail": "Token inválido o expirado"}, status_code=401)
+    return await call_next(request)
 
 _origins = [settings.frontend_url]
 if settings.allowed_origins:

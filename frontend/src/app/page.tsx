@@ -7,6 +7,7 @@ import AnalysisPanel from "@/components/Dashboard/AnalysisPanel";
 import AlertPanel from "@/components/Alerts/AlertPanel";
 import AlertBanner from "@/components/Alerts/AlertBanner";
 import RiskCalculator from "@/components/RiskCalculator/RiskCalculator";
+import { logout } from "@/lib/auth";
 
 export default function Home() {
   const [symbol, setSymbol] = useState("AAPL");
@@ -23,6 +24,12 @@ export default function Home() {
       <header className="border-b border-gray-800 px-6 py-3 flex items-center gap-4">
         <h1 className="text-xl font-bold text-[#2196f3]">Bolsa App</h1>
         <span className="text-gray-500 text-sm">Análisis Técnico · Chile & USA</span>
+        <div className="ml-auto">
+          <button onClick={logout}
+            className="text-xs text-gray-500 hover:text-gray-300 transition px-2 py-1 rounded hover:bg-gray-800">
+            Cerrar sesión
+          </button>
+        </div>
       </header>
 
       {/* Barra de búsqueda y controles */}

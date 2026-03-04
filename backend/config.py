@@ -24,7 +24,13 @@ class Settings(BaseSettings):
     # Alertas
     database_url: str = "sqlite:///./alerts.db"
     telegram_bot_token: str = ""
-    alert_check_minutes: int = 15  # frecuencia de evaluación del scheduler
+    alert_check_minutes: int = 15
+
+    # Auth
+    jwt_secret: str = "cambiar-en-produccion-secret-muy-largo"
+    jwt_expire_hours: int = 24
+    admin_username: str = "admin"
+    admin_password: str = ""  # si está vacío no se crea usuario automático
 
     class Config:
         env_file = ".env"

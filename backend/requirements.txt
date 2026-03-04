@@ -16,3 +16,6 @@ scipy>=1.15.0
 # Alertas
 sqlalchemy>=2.0.0
 apscheduler>=3.10.0
+# Auth
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0

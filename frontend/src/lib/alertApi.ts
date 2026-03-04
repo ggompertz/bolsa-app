@@ -1,4 +1,13 @@
+import { authHeaders } from "@/lib/auth";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+async function apiFetch(url: string, options: RequestInit = {}) {
+  return fetch(url, {
+    ...options,
+    headers: { ...authHeaders(), ...(options.headers ?? {}) },
+  });
+}
 
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -45,7 +54,7 @@ export interface TriggeredAlert {
 // ─── CRUD ───────────────────────────────────────────────────────────────────
 
 export async function createAlert(data: AlertCreate): Promise<Alert> {
-  const res = await fetch(`${API_BASE}/api/alerts`, {
+  const res = await apiFetch(`${API_BASE}/api/alerts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -55,13 +64,13 @@ export async function createAlert(data: AlertCreate): Promise<Alert> {
 }
 
 export async function listAlerts(): Promise<Alert[]> {
-  const res = await fetch(`${API_BASE}/api/alerts`);
+  const res = await apiFetch(`${API_BASE}/api/alerts`);
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json();
 }
 
 export async function deleteAlert(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/alerts/${id}`, { method: "DELETE" });
+  const res = await apiFetch(`${API_BASE}/api/alerts/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
@@ -70,17 +79,17 @@ export async function deleteAlert(id: number): Promise<void> {
 export async function getTriggered(since?: string): Promise<TriggeredAlert[]> {
   const params = new URLSearchParams({ unseen_only: "true" });
   if (since) params.set("since", since);
-  const res = await fetch(`${API_BASE}/api/alerts/triggered?${params}`);
+  const res = await apiFetch(`${API_BASE}/api/alerts/triggered?${params}`);
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json();
 }
 
 export async function markSeen(id: number): Promise<void> {
-  await fetch(`${API_BASE}/api/alerts/triggered/${id}/seen`, { method: "PUT" });
+  await apiFetch(`${API_BASE}/api/alerts/triggered/${id}/seen`, { method: "PUT" });
 }
 
 export async function testAlert(id: number): Promise<{ triggered: boolean; message: string }> {
-  const res = await fetch(`${API_BASE}/api/alerts/test/${id}`, { method: "POST" });
+  const res = await apiFetch(`${API_BASE}/api/alerts/test/${id}`, { method: "POST" });
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json();
 }

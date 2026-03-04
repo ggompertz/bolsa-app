@@ -29,7 +29,7 @@ def get_db():
 
 def init_db():
     """Crea todas las tablas si no existen y migra columnas nuevas."""
-    from db.models import Alert, TriggeredAlert  # noqa: F401 — importar para registrar modelos
+    from db.models import Alert, TriggeredAlert, User  # noqa: F401
     Base.metadata.create_all(bind=engine)
     # Migración segura: agregar columnas nuevas si no existen (SQLite no soporta IF NOT EXISTS en ADD COLUMN)
     with engine.connect() as conn:
