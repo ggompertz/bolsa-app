@@ -68,7 +68,7 @@ from api.alerts import router as alerts_router
 from api.auth import router as auth_router
 
 # Rutas públicas que no requieren autenticación
-_PUBLIC_PATHS = {"/api/auth/login", "/docs", "/openapi.json", "/redoc"}
+_PUBLIC_PATHS = {"/api/auth/login", "/api/markets", "/docs", "/openapi.json", "/redoc"}
 
 
 async def _run_alert_check():
