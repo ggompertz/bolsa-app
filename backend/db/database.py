@@ -42,5 +42,11 @@ def init_db():
                 conn.commit()
             except Exception:
                 pass  # columna ya existe
+        # Migración tabla users
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
+            conn.commit()
+        except Exception:
+            pass  # columna ya existe
 
 

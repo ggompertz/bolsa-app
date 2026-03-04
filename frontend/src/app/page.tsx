@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import StockSearch from "@/components/StockSearch/StockSearch";
 import ChartPanel from "@/components/Chart/ChartPanel";
 import AnalysisPanel from "@/components/Dashboard/AnalysisPanel";
 import AlertPanel from "@/components/Alerts/AlertPanel";
 import AlertBanner from "@/components/Alerts/AlertBanner";
 import RiskCalculator from "@/components/RiskCalculator/RiskCalculator";
-import { logout } from "@/lib/auth";
+import { logout, authHeaders } from "@/lib/auth";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export default function Home() {
+  const router = useRouter();
   const [symbol, setSymbol] = useState("AAPL");
   const [market, setMarket] = useState("US");
   const [interval, setInterval] = useState("1d");
@@ -17,6 +21,14 @@ export default function Home() {
   const [indicators, setIndicators] = useState(
     "SMA_20,SMA_50,Volume,RSI,MACD"
   );
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.is_admin) setIsAdmin(true); })
+      .catch(() => {});
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#131722] text-white">
@@ -24,7 +36,13 @@ export default function Home() {
       <header className="border-b border-gray-800 px-6 py-3 flex items-center gap-4">
         <h1 className="text-xl font-bold text-[#2196f3]">Bolsa App</h1>
         <span className="text-gray-500 text-sm">Análisis Técnico · Chile & USA</span>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {isAdmin && (
+            <button onClick={() => router.push("/admin")}
+              className="text-xs text-gray-500 hover:text-gray-300 transition px-2 py-1 rounded hover:bg-gray-800">
+              Usuarios
+            </button>
+          )}
           <button onClick={logout}
             className="text-xs text-gray-500 hover:text-gray-300 transition px-2 py-1 rounded hover:bg-gray-800">
             Cerrar sesión

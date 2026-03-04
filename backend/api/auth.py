@@ -33,6 +33,7 @@ class UserOut(BaseModel):
     id: int
     username: str
     is_admin: bool
+    is_active: bool
     model_config = {"from_attributes": True}
 
 
@@ -53,6 +54,8 @@ def get_current_user(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario no encontrado")
+    if not user.is_active:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario desactivado")
     return user
 
 
@@ -93,6 +96,19 @@ def create_user(body: UserCreate, admin: User = Depends(require_admin), db: Sess
         is_admin=body.is_admin,
     )
     db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.patch("/users/{user_id}/active", response_model=UserOut)
+def toggle_active(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    if admin.id == user_id:
+        raise HTTPException(400, "No puedes desactivarte a ti mismo")
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(404, "Usuario no encontrado")
+    user.is_active = not user.is_active
     db.commit()
     db.refresh(user)
     return user
