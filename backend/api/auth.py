@@ -1,6 +1,7 @@
 """
 Endpoints de autenticación: login, perfil y gestión de usuarios.
 """
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -38,7 +39,7 @@ class UserOut(BaseModel):
 # ─── Dependency: usuario actual ────────────────────────────────────────────
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer),
     db: Session = Depends(get_db),
 ) -> User:
     if not credentials:
