@@ -37,7 +37,18 @@ def build_candlestick_chart(
     has_macd = "MACD" in indicators
     has_adx  = "ADX"  in indicators
     n_rows   = 1 + int(show_volume) + int(has_rsi) + int(has_macd) + int(has_adx)
-    row_heights = [0.5] + [0.15] * (n_rows - 1)
+
+    # Altura dinámica: 480px para velas + 160px por cada subgráfico adicional
+    chart_height = 480 + (n_rows - 1) * 160
+
+    # El gráfico principal ocupa el 55% restante proporcional a los subgráficos
+    sub_weight  = 1.0
+    main_weight = sub_weight * (n_rows - 1) * 0.95 if n_rows > 1 else 1.0
+    total       = main_weight + sub_weight * (n_rows - 1)
+    row_heights = (
+        [main_weight / total] + [sub_weight / total] * (n_rows - 1)
+        if n_rows > 1 else [1.0]
+    )
 
     subplot_titles = [symbol]
     if show_volume: subplot_titles.append("Volumen")
@@ -48,7 +59,7 @@ def build_candlestick_chart(
     fig = make_subplots(
         rows=n_rows, cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.02,
+        vertical_spacing=0.03,
         subplot_titles=subplot_titles,
         row_heights=row_heights,
     )
@@ -196,13 +207,25 @@ def build_candlestick_chart(
     # --- Layout ---
     fig.update_layout(
         template="plotly_dark",
-        height=700,
+        height=chart_height,
+        autosize=True,
         xaxis_rangeslider_visible=False,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=40, r=40, t=60, b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom", y=1.02,
+            xanchor="right",  x=1,
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(size=11),
+        ),
+        margin=dict(l=50, r=20, t=60, b=40),
         paper_bgcolor="#131722",
         plot_bgcolor="#131722",
+        hovermode="x unified",
     )
+    # Ejes Y con autorange al hacer zoom
+    fig.update_yaxes(autorange=True, fixedrange=False)
+    # Eje X sin rangeslider pero con zoom libre
+    fig.update_xaxes(showgrid=True, gridcolor="#1e2230", fixedrange=False)
 
     return fig.to_json()
 

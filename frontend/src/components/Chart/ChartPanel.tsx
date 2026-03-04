@@ -35,7 +35,9 @@ export default function ChartPanel({ symbol, market, interval, period, indicator
           await Plotly.react(containerRef.current, figure.data, figure.layout, {
             responsive: true,
             displaylogo: false,
-            modeBarButtonsToRemove: ["lasso2d", "select2d"],
+            scrollZoom: true,
+            modeBarButtonsToRemove: ["lasso2d", "select2d", "autoScale2d"],
+            modeBarButtonsToAdd: ["resetScale2d"],
           });
         }
       } catch (e: unknown) {
@@ -61,7 +63,7 @@ export default function ChartPanel({ symbol, market, interval, period, indicator
           {error}
         </div>
       )}
-      <div ref={containerRef} style={{ width: "100%", minHeight: 600 }} />
+      <div ref={containerRef} style={{ width: "100%", minHeight: 480 }} />
     </div>
   );
 }
