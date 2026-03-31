@@ -1,0 +1,37 @@
+# fly.toml app configuration file generated for bolsa-app-backend on 2026-03-30T12:19:19-03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'bolsa-app-backend'
+primary_region = 'gru'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  CACHE_DIR = '/data/.cache'
+  DATABASE_URL = 'sqlite:////data/alerts.db'
+  PORT = '8080'
+
+[[mounts]]
+  source = 'bolsa_data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 50
+    soft_limit = 25
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 512

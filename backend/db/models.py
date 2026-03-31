@@ -1,8 +1,8 @@
 """
-Modelos SQLAlchemy para el sistema de alertas.
+Modelos SQLAlchemy para el sistema de alertas y trading.
 """
 from datetime import datetime, timezone
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from db.database import Base
 
@@ -62,3 +62,33 @@ class TriggeredAlert(Base):
     seen: Mapped[bool] = mapped_column(Boolean, default=False)
 
     alert: Mapped["Alert"] = relationship("Alert", back_populates="triggered")
+
+
+class Trade(Base):
+    """Registro de operación de trading apalancado (simulado)."""
+    __tablename__ = "trades"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    market: Mapped[str] = mapped_column(String(10), nullable=False, default="CRYPTO")
+    direction: Mapped[str] = mapped_column(String(5), nullable=False)      # "long" | "short"
+    leverage: Mapped[int] = mapped_column(Integer, nullable=False)         # 20, 50, 100, 200
+    entry_price: Mapped[float] = mapped_column(Float, nullable=False)
+    stop_loss: Mapped[float] = mapped_column(Float, nullable=False)
+    liquidation_price: Mapped[float] = mapped_column(Float, nullable=False)
+    tp1: Mapped[float] = mapped_column(Float, nullable=False)
+    tp2: Mapped[float] = mapped_column(Float, nullable=False)
+    tp3: Mapped[float] = mapped_column(Float, nullable=False)
+    capital: Mapped[float] = mapped_column(Float, nullable=False)          # capital en USD
+    position_size: Mapped[float] = mapped_column(Float, nullable=False)    # unidades
+    status: Mapped[str] = mapped_column(String(10), default="open")        # open | closed | stopped
+    exit_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pnl: Mapped[float | None] = mapped_column(Float, nullable=True)        # P&L en USD
+    pnl_pct: Mapped[float | None] = mapped_column(Float, nullable=True)    # P&L en %
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    opened_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

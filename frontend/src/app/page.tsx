@@ -7,14 +7,16 @@ import ChartPanel from "@/components/Chart/ChartPanel";
 import AnalysisPanel from "@/components/Dashboard/AnalysisPanel";
 import AlertPanel from "@/components/Alerts/AlertPanel";
 import AlertBanner from "@/components/Alerts/AlertBanner";
-import RiskCalculator from "@/components/RiskCalculator/RiskCalculator";
+import TradingPanel from "@/components/Trading/TradingPanel";
+import TradeHistory from "@/components/Trading/TradeHistory";
 import { logout, authHeaders } from "@/lib/auth";
+import { TradingLevels } from "@/lib/tradeApi";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 const INDICATORS = ["SMA_20","SMA_50","SMA_200","EMA_9","BB_Upper","GMMA","ADX","Volume","RSI","MACD"];
-
-type Tab = "chart" | "analysis" | "alerts";
+type SideTab = "analysis" | "trading" | "alerts";
+type MobileTab = "chart" | SideTab;
 
 export default function Home() {
   const router = useRouter();
@@ -24,7 +26,10 @@ export default function Home() {
   const [period, setPeriod] = useState("1y");
   const [indicators, setIndicators] = useState("SMA_20,SMA_50,Volume,RSI,MACD");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<Tab>("chart");
+  const [mobileTab, setMobileTab] = useState<MobileTab>("chart");
+  const [sideTab, setSideTab] = useState<SideTab>("analysis");
+  const [lastPrice, setLastPrice] = useState<number | undefined>();
+  const [tradingLevels, setTradingLevels] = useState<TradingLevels | null>(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() })
@@ -32,6 +37,11 @@ export default function Home() {
       .then(data => { if (data?.is_admin) setIsAdmin(true); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    setLastPrice(undefined);
+    setTradingLevels(null);
+  }, [symbol, market]);
 
   function toggleIndicator(ind: string) {
     const list = indicators.split(",").filter(Boolean);
@@ -46,6 +56,37 @@ export default function Home() {
     else if (iv === "1h")                     setPeriod("3mo");
   }
 
+  const SIDE_TABS: { key: SideTab; label: string }[] = [
+    { key: "analysis", label: "Análisis" },
+    { key: "trading",  label: "Trading"  },
+    { key: "alerts",   label: "Alertas"  },
+  ];
+
+  const MOBILE_TABS: { key: MobileTab; label: string }[] = [
+    { key: "chart",    label: "Gráfico"  },
+    { key: "analysis", label: "Análisis" },
+    { key: "trading",  label: "Trading"  },
+    { key: "alerts",   label: "Alertas"  },
+  ];
+
+  function SideContent({ tab }: { tab: SideTab }) {
+    if (tab === "analysis") return <AnalysisPanel symbol={symbol} market={market} />;
+    if (tab === "alerts")   return <AlertPanel currentSymbol={symbol} currentMarket={market} />;
+    return (
+      <div className="space-y-6">
+        <TradingPanel
+          symbol={symbol}
+          market={market}
+          lastPrice={lastPrice}
+          onLevelsChange={setTradingLevels}
+        />
+        <div className="border-t border-gray-800 pt-4">
+          <TradeHistory />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#131722] text-white flex flex-col">
 
@@ -54,18 +95,13 @@ export default function Home() {
         <h1 className="text-lg font-bold text-[#2196f3] shrink-0">Bolsa App</h1>
         <span className="hidden sm:inline text-gray-500 text-xs">Análisis Técnico · Chile & USA</span>
 
-        {/* Buscador centrado */}
         <div className="flex-1 min-w-0">
           <StockSearch onSelect={(sym, mkt) => { setSymbol(sym); setMarket(mkt); }} />
         </div>
 
-        {/* Controles de tiempo */}
         <div className="flex gap-1 shrink-0">
-          <select
-            className="bg-gray-800 text-xs rounded px-1.5 py-1 border border-gray-700"
-            value={interval}
-            onChange={e => handleInterval(e.target.value)}
-          >
+          <select className="bg-gray-800 text-xs rounded px-1.5 py-1 border border-gray-700"
+            value={interval} onChange={e => handleInterval(e.target.value)}>
             <option value="1m">1m</option>
             <option value="5m">5m</option>
             <option value="15m">15m</option>
@@ -75,12 +111,8 @@ export default function Home() {
             <option value="1wk">1S</option>
             <option value="1mo">1M</option>
           </select>
-
-          <select
-            className="bg-gray-800 text-xs rounded px-1.5 py-1 border border-gray-700"
-            value={period}
-            onChange={e => setPeriod(e.target.value)}
-          >
+          <select className="bg-gray-800 text-xs rounded px-1.5 py-1 border border-gray-700"
+            value={period} onChange={e => setPeriod(e.target.value)}>
             {["1m"].includes(interval) && <option value="5d">5d</option>}
             {["1m","5m","15m","30m"].includes(interval) && <option value="1mo">1m</option>}
             {!["1m"].includes(interval) && <option value="3mo">3m</option>}
@@ -94,7 +126,6 @@ export default function Home() {
           </select>
         </div>
 
-        {/* Menú */}
         <div className="flex items-center gap-1 shrink-0">
           {isAdmin && (
             <button onClick={() => router.push("/admin")}
@@ -109,21 +140,16 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ── Indicadores (scroll horizontal en móvil) ── */}
+      {/* ── Indicadores ── */}
       <div className="border-b border-gray-800 px-3 py-2 shrink-0">
         <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
           {INDICATORS.map(ind => {
             const active = indicators.split(",").includes(ind);
             return (
-              <button
-                key={ind}
-                onClick={() => toggleIndicator(ind)}
+              <button key={ind} onClick={() => toggleIndicator(ind)}
                 className={`shrink-0 px-2 py-0.5 rounded text-xs border transition ${
-                  active
-                    ? "bg-[#2196f3] border-[#2196f3] text-white"
-                    : "bg-transparent border-gray-600 text-gray-400"
-                }`}
-              >
+                  active ? "bg-[#2196f3] border-[#2196f3] text-white" : "bg-transparent border-gray-600 text-gray-400"
+                }`}>
                 {ind.replace("_", " ")}
               </button>
             );
@@ -131,51 +157,54 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Tabs (solo móvil) ── */}
+      {/* ── Tabs móvil ── */}
       <div className="xl:hidden border-b border-gray-800 flex shrink-0">
-        {(["chart","analysis","alerts"] as Tab[]).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
+        {MOBILE_TABS.map(({ key, label }) => (
+          <button key={key} onClick={() => setMobileTab(key)}
             className={`flex-1 py-2 text-xs font-medium transition ${
-              tab === t
-                ? "text-[#2196f3] border-b-2 border-[#2196f3]"
-                : "text-gray-500"
-            }`}
-          >
-            {t === "chart" ? "Gráfico" : t === "analysis" ? "Análisis" : "Alertas"}
+              mobileTab === key ? "text-[#2196f3] border-b-2 border-[#2196f3]" : "text-gray-500"
+            }`}>
+            {label}
           </button>
         ))}
       </div>
 
-      {/* ── Cuerpo principal ── */}
+      {/* ── Cuerpo ── */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_320px] min-h-0">
 
         {/* Gráfico */}
-        <div className={`p-3 ${tab !== "chart" ? "hidden xl:block" : ""}`}>
+        <div className={`p-3 ${mobileTab !== "chart" ? "hidden xl:block" : ""}`}>
           <ChartPanel
-            symbol={symbol}
-            market={market}
-            interval={interval}
-            period={period}
+            symbol={symbol} market={market}
+            interval={interval} period={period}
             indicators={indicators}
+            tradingLevels={tradingLevels}
           />
         </div>
 
         {/* Panel lateral */}
-        <div className={`xl:border-l border-gray-800 overflow-y-auto ${tab === "chart" ? "hidden xl:block" : ""}`}>
+        <div className={`xl:border-l border-gray-800 overflow-y-auto ${mobileTab === "chart" ? "hidden xl:flex xl:flex-col" : "flex flex-col"}`}>
 
-          {/* Análisis */}
-          <div className={`p-4 ${tab === "alerts" ? "hidden xl:block" : ""}`}>
-            <AnalysisPanel symbol={symbol} market={market} />
-            <div className="border-t border-gray-800 pt-4 mt-4">
-              <RiskCalculator />
-            </div>
+          {/* Tabs desktop */}
+          <div className="hidden xl:flex border-b border-gray-800 shrink-0">
+            {SIDE_TABS.map(({ key, label }) => (
+              <button key={key} onClick={() => setSideTab(key)}
+                className={`px-4 py-2 text-xs font-medium transition border-b-2 ${
+                  sideTab === key ? "text-[#2196f3] border-[#2196f3]" : "text-gray-500 border-transparent hover:text-gray-300"
+                }`}>
+                {label}
+              </button>
+            ))}
           </div>
 
-          {/* Alertas */}
-          <div className={`p-4 ${tab === "analysis" ? "hidden xl:block" : ""}`}>
-            <AlertPanel currentSymbol={symbol} currentMarket={market} />
+          {/* Contenido desktop */}
+          <div className="hidden xl:block p-4 flex-1">
+            <SideContent tab={sideTab} />
+          </div>
+
+          {/* Contenido móvil */}
+          <div className="xl:hidden p-4 flex-1">
+            <SideContent tab={mobileTab as SideTab} />
           </div>
 
         </div>

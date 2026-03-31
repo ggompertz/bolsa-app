@@ -20,8 +20,25 @@ export default function StockSearch({ onSelect }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipSearchRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
+      return;
+    }
     if (query.length < 2) {
       setResults([]);
       return;
@@ -42,17 +59,19 @@ export default function StockSearch({ onSelect }: Props) {
   }, [query, market]);
 
   const select = (sym: string) => {
+    skipSearchRef.current = true;
     onSelect(sym, market);
     setQuery(sym);
+    setResults([]);
     setOpen(false);
   };
 
   return (
-    <div className="relative flex gap-2 items-center">
+    <div ref={containerRef} className="relative flex gap-2 items-center">
       <select
         className="bg-gray-800 text-sm rounded px-2 py-1 border border-gray-700"
         value={market}
-        onChange={(e) => setMarket(e.target.value as "US" | "CL" | "CRYPTO")}
+        onChange={(e) => { setMarket(e.target.value as "US" | "CL" | "CRYPTO"); setResults([]); setQuery(""); }}
       >
         <option value="US">NYSE/NASDAQ</option>
         <option value="CL">Bolsa Santiago</option>
@@ -64,7 +83,7 @@ export default function StockSearch({ onSelect }: Props) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => query.length < 2 && setOpen(true)}
+          onFocus={() => setOpen(true)}
           placeholder="Buscar ticker..."
           className="bg-gray-800 border border-gray-700 rounded px-3 py-1 text-sm w-48 focus:outline-none focus:border-[#2196f3]"
         />
@@ -79,7 +98,7 @@ export default function StockSearch({ onSelect }: Props) {
                 {POPULAR[market].map((sym) => (
                   <button
                     key={sym}
-                    onClick={() => select(sym)}
+                    onMouseDown={(e) => { e.preventDefault(); select(sym); }}
                     className="w-full text-left px-3 py-1 text-sm hover:bg-gray-800 rounded"
                   >
                     {sym}
@@ -90,16 +109,16 @@ export default function StockSearch({ onSelect }: Props) {
               results.map((r) => (
                 <button
                   key={r.symbol}
-                  onClick={() => select(r.symbol)}
+                  onMouseDown={(e) => { e.preventDefault(); select(r.symbol); }}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-gray-800 flex gap-2"
                 >
                   <span className="font-mono text-[#2196f3]">{r.symbol}</span>
                   <span className="text-gray-400 truncate">{r.name}</span>
                 </button>
               ))
-            ) : (
+            ) : !loading ? (
               <p className="p-3 text-sm text-gray-500">Sin resultados</p>
-            )}
+            ) : null}
           </div>
         )}
       </div>

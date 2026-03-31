@@ -66,6 +66,7 @@ from services.alert_evaluator import evaluate_all_alerts
 from services.auth_service import hash_password, decode_token
 from api.alerts import router as alerts_router
 from api.auth import router as auth_router
+from api.trades import router as trades_router
 
 # Rutas públicas que no requieren autenticación
 _PUBLIC_PATHS = {"/api/auth/login", "/api/markets", "/docs", "/openapi.json", "/redoc"}
@@ -140,6 +141,12 @@ try:
     logger.info("ALERTS ROUTER REGISTRADO OK")
 except Exception as _e:
     logger.error("ERROR al registrar alerts_router: %s", _e)
+
+try:
+    app.include_router(trades_router)
+    logger.info("TRADES ROUTER REGISTRADO OK")
+except Exception as _e:
+    logger.error("ERROR al registrar trades_router: %s", _e)
 
 
 @app.middleware("http")
