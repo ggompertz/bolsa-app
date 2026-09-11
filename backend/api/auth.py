@@ -1,8 +1,10 @@
 """
 Endpoints de autenticación: login, perfil y gestión de usuarios.
 """
+import time
+from collections import defaultdict
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -14,6 +16,22 @@ from services.auth_service import verify_password, hash_password, create_token, 
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 bearer = HTTPBearer(auto_error=False)
+
+# Rate limit de /login en memoria — sin dependencia nueva (no hay slowapi en
+# requirements.txt). Suficiente para un solo proceso; no sobrevive un restart
+# ni se comparte entre múltiples instancias, aceptable para la escala actual.
+_LOGIN_ATTEMPTS: dict[str, list[float]] = defaultdict(list)
+_LOGIN_MAX_ATTEMPTS = 10
+_LOGIN_WINDOW_SECONDS = 300  # 5 minutos
+
+
+def _check_login_rate_limit(ip: str) -> None:
+    now = time.time()
+    attempts = _LOGIN_ATTEMPTS[ip]
+    attempts[:] = [t for t in attempts if now - t < _LOGIN_WINDOW_SECONDS]
+    if len(attempts) >= _LOGIN_MAX_ATTEMPTS:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Demasiados intentos. Espera unos minutos.")
+    attempts.append(now)
 
 
 # ─── Schemas ───────────────────────────────────────────────────────────────
@@ -68,7 +86,8 @@ def require_admin(current: User = Depends(get_current_user)) -> User:
 # ─── Endpoints ─────────────────────────────────────────────────────────────
 
 @router.post("/login")
-def login(body: LoginRequest, db: Session = Depends(get_db)):
+def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    _check_login_rate_limit(request.client.host if request.client else "unknown")
     user = db.query(User).filter(User.username == body.username).first()
     if not user or not verify_password(body.password, user.hashed_password):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario o contraseña incorrectos")
