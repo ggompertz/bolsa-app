@@ -162,9 +162,28 @@ async def auth_middleware(request: Request, call_next):
     if not token:
         return JSONResponse({"detail": "No autenticado"}, status_code=401)
     try:
-        decode_token(token)
+        payload = decode_token(token)
     except JWTError:
         return JSONResponse({"detail": "Token inválido o expirado"}, status_code=401)
+
+    # Revalidar contra la tabla users — decode_token solo verifica firma/expiración
+    # del JWT, nunca si el usuario sigue activo. Sin esto, desactivar/eliminar un
+    # usuario no le revocaba el acceso hasta que su JWT expirara (hasta
+    # jwt_expire_hours). Rutas como alerts.py dependen solo de este middleware
+    # (no usan Depends(get_current_user), que sí hacía este chequeo).
+    try:
+        user_id = int(payload.get("sub"))
+    except (TypeError, ValueError):
+        return JSONResponse({"detail": "Token inválido"}, status_code=401)
+
+    db = SessionLocal()
+    try:
+        user = db.get(User, user_id)
+        if not user or not user.is_active:
+            return JSONResponse({"detail": "Usuario desactivado"}, status_code=401)
+    finally:
+        db.close()
+
     return await call_next(request)
 
 _origins = [settings.frontend_url]
@@ -174,7 +193,9 @@ if settings.allowed_origins:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",  # cualquier deploy de Vercel
+    # Acotado a deploys del propio proyecto (frontend-*) — antes aceptaba
+    # CUALQUIER subdominio *.vercel.app, combinado con allow_credentials=True.
+    allow_origin_regex=r"https://frontend-[a-zA-Z0-9-]+\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
