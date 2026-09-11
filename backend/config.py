@@ -26,8 +26,9 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     alert_check_minutes: int = 15
 
-    # Auth
-    jwt_secret: str = "cambiar-en-produccion-secret-muy-largo"
+    # Auth — sin default: si JWT_SECRET no está seteada, Settings() falla al
+    # arrancar en vez de correr silenciosamente con un secreto conocido/público.
+    jwt_secret: str
     jwt_expire_hours: int = 24
     admin_username: str = "admin"
     admin_password: str = ""  # si está vacío no se crea usuario automático
