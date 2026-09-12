@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from db.database import get_db
 from db.models import Alert, TriggeredAlert
 from services.alert_evaluator import evaluate_alert_now, CONDITION_TYPES
+from api.auth import get_current_user, User
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -57,13 +58,18 @@ class TriggeredOut(BaseModel):
 # ─── Endpoints ─────────────────────────────────────────────────────────────
 
 @router.post("", response_model=AlertOut, status_code=201)
-def create_alert(body: AlertCreate, db: Session = Depends(get_db)):
+def create_alert(
+    body: AlertCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     if body.condition_type not in CONDITION_TYPES:
         raise HTTPException(
             400,
             f"condition_type inválido. Válidos: {sorted(CONDITION_TYPES)}"
         )
     alert = Alert(
+        user_id=current_user.id,
         symbol=body.symbol.upper(),
         market=body.market.upper(),
         condition_type=body.condition_type,
@@ -79,15 +85,27 @@ def create_alert(body: AlertCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[AlertOut])
-def list_alerts(db: Session = Depends(get_db)):
-    alerts = db.query(Alert).filter(Alert.active == True).order_by(Alert.created_at.desc()).all()  # noqa: E712
+def list_alerts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    alerts = (
+        db.query(Alert)
+        .filter(Alert.active == True, Alert.user_id == current_user.id)  # noqa: E712
+        .order_by(Alert.created_at.desc())
+        .all()
+    )
     return [_alert_to_out(a) for a in alerts]
 
 
 @router.delete("/{alert_id}", status_code=204)
-def delete_alert(alert_id: int, db: Session = Depends(get_db)):
+def delete_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     alert = db.get(Alert, alert_id)
-    if not alert:
+    if not alert or alert.user_id != current_user.id:
         raise HTTPException(404, "Alerta no encontrada")
     alert.active = False
     db.commit()
@@ -98,9 +116,14 @@ def get_triggered(
     since: Optional[str] = Query(None, description="ISO datetime — solo retorna desde esta fecha"),
     unseen_only: bool = Query(False),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Retorna alertas disparadas (para polling del frontend)."""
-    q = db.query(TriggeredAlert).join(Alert).filter(Alert.active == True)  # noqa: E712
+    q = (
+        db.query(TriggeredAlert)
+        .join(Alert)
+        .filter(Alert.active == True, Alert.user_id == current_user.id)  # noqa: E712
+    )
     if unseen_only:
         q = q.filter(TriggeredAlert.seen == False)  # noqa: E712
     if since:
@@ -114,19 +137,27 @@ def get_triggered(
 
 
 @router.put("/triggered/{triggered_id}/seen", status_code=204)
-def mark_seen(triggered_id: int, db: Session = Depends(get_db)):
+def mark_seen(
+    triggered_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     record = db.get(TriggeredAlert, triggered_id)
-    if not record:
+    if not record or record.alert.user_id != current_user.id:
         raise HTTPException(404, "Notificación no encontrada")
     record.seen = True
     db.commit()
 
 
 @router.post("/test/{alert_id}")
-def test_alert(alert_id: int, db: Session = Depends(get_db)):
+def test_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Evalúa la condición de una alerta ahora mismo (sin guardar ni enviar Telegram)."""
     alert = db.get(Alert, alert_id)
-    if not alert:
+    if not alert or alert.user_id != current_user.id:
         raise HTTPException(404, "Alerta no encontrada")
     triggered, message = evaluate_alert_now(alert)
     return {"triggered": triggered, "message": message}

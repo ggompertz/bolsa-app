@@ -1,6 +1,7 @@
 """
 Evaluación de condiciones de alerta usando las funciones de analysis/.
 """
+import html
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -51,7 +52,9 @@ def _check_single_condition(ctype: str, params: dict, df) -> tuple[bool, str]:
         pattern = params.get("pattern", "Hammer")
         patterns_df = get_all_patterns(df)
         if pattern in patterns_df.columns and bool(patterns_df[pattern].iloc[-1]):
-            return True, f"Patrón {pattern}"
+            # pattern viene de condition_params (input del usuario) — se manda
+            # con parse_mode HTML a Telegram, hay que escaparlo (ver ticker abajo).
+            return True, f"Patrón {html.escape(pattern)}"
         return False, ""
 
     if ctype == "volume_anomaly":
@@ -81,6 +84,12 @@ def _evaluate_condition(alert: Alert) -> tuple[bool, str]:
     Retorna (disparada, mensaje_formateado).
     """
     ticker = format_ticker(alert.symbol, alert.market)
+    # ticker_html: mismo valor pero escapado, solo para interpolar en el mensaje
+    # de Telegram (parse_mode HTML) — alert.symbol es input del usuario, sin
+    # escapar un symbol con HTML/links se renderiza como contenido real en el
+    # chat destino (phishing vía el bot legítimo). El fetch de datos de abajo
+    # sigue usando el ticker sin escapar, sin cambio de comportamiento ahí.
+    ticker_html = html.escape(ticker)
     params = json.loads(alert.condition_params or "{}")
 
     try:
@@ -100,7 +109,7 @@ def _evaluate_condition(alert: Alert) -> tuple[bool, str]:
                 matched.append(detail)
         if len(matched) >= min_match:
             signals = " + ".join(matched)
-            return True, f"🎯 <b>{ticker}</b>: Confluencia ({len(matched)}/{len(conditions)}) — {signals}"
+            return True, f"🎯 <b>{ticker_html}</b>: Confluencia ({len(matched)}/{len(conditions)}) — {signals}"
         return False, ""
 
     # ── Condición simple ───────────────────────────────────────────────────
@@ -113,7 +122,7 @@ def _evaluate_condition(alert: Alert) -> tuple[bool, str]:
         "candle_pattern": "🕯️", "volume_anomaly": "📊", "breakout": "⚡",
     }
     emoji = emoji_map.get(alert.condition_type, "🔔")
-    return True, f"{emoji} <b>{ticker}</b>: {detail}"
+    return True, f"{emoji} <b>{ticker_html}</b>: {detail}"
 
 
 def _in_cooldown(alert: Alert) -> bool:
