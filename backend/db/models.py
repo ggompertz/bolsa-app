@@ -27,6 +27,7 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     symbol: Mapped[str] = mapped_column(String(20), nullable=False)
     market: Mapped[str] = mapped_column(String(5), nullable=False, default="US")
     condition_type: Mapped[str] = mapped_column(String(30), nullable=False)
